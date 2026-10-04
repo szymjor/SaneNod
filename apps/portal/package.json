@@ -1,0 +1,29 @@
+{
+  "name": "@sanenod/portal",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sanenod/auth": "workspace:*",
+    "@sanenod/ui": "workspace:*",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "qrcode": "^1.5.4",
+    "better-auth": "1.7.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/qrcode": "^1.5.5",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.3.8",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.turbo/
+dist/
+out/
+.cache/
+.env*
+!.env.example
+playwright-report/
+test-results/
+supabase/.temp/
+supabase/.branches/
+apps/desktop/artifacts/
+.vercel/
+*.tsbuildinfo

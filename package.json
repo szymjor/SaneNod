@@ -1,0 +1,36 @@
+{
+  "name": "sanenod",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint && pnpm format:check",
+    "typecheck": "turbo typecheck",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:start": "node scripts/db-local.mjs",
+    "db:test": "vitest run tests/database.test.ts",
+    "desktop:dev": "pnpm --filter @sanenod/desktop dev",
+    "db:migrate": "node scripts/migrate.mjs",
+    "desktop:package": "pnpm --filter @sanenod/desktop package",
+    "test:signup": "playwright test --config playwright.signup.config.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "pg": "8.23.1",
+    "prettier": "3.9.9",
+    "turbo": "2.11.7",
+    "typescript": "5.9.3",
+    "vercel": "62.2.0",
+    "vitest": "5.0.3"
+  },
+  "type": "module"
+}
