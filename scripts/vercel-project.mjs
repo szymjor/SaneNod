@@ -14,6 +14,7 @@ let response = await fetch(
   `https://api.vercel.com/v9/projects/sanenod${suffix}`,
   { headers },
 );
+const created = response.status === 404;
 if (response.status === 404)
   response = await fetch(`https://api.vercel.com/v11/projects${suffix}`, {
     method: "POST",
@@ -22,7 +23,6 @@ if (response.status === 404)
       name: "sanenod",
       framework: "nextjs",
       rootDirectory: "apps/portal",
-      nodeVersion: "24.x",
       installCommand: "pnpm install --frozen-lockfile",
       buildCommand: "pnpm --filter @sanenod/portal build",
     }),
@@ -38,6 +38,21 @@ if (project.rootDirectory !== "apps/portal")
   throw new Error(
     "An existing sanenod project has a different root directory. Preserve it and review project settings.",
   );
+if (created) {
+  const settings = await fetch(
+    `https://api.vercel.com/v9/projects/${project.id}${suffix}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        nodeVersion: "24.x",
+        sourceFilesOutsideRootDirectory: true,
+      }),
+    },
+  );
+  if (!settings.ok)
+    throw new Error(`Vercel project settings failed (${settings.status}).`);
+}
 mkdirSync(".vercel", { recursive: true });
 writeFileSync(
   ".vercel/project.json",
