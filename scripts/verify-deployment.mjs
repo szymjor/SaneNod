@@ -1,7 +1,8 @@
-import { chromium, devices, expect } from "@playwright/test";
+import { chromium, devices, expect as baseExpect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
+const expect = baseExpect.configure({ timeout: 30000 });
 
 const origin = new URL(process.env.DEPLOYMENT_TEST_URL).origin;
 if (!origin.startsWith("https://"))
@@ -13,18 +14,36 @@ const project =
   process.env.VERCEL_PROJECT_ID ?? "prj_fq3PbZQCuXaej0XAHCRz2ENvSF2v";
 const team = process.env.VERCEL_TEAM_ID ?? "team_T7AfBn4j1kIvKRiuLz4lXlSZ";
 const extraHTTPHeaders = process.env.DEPLOYMENT_PROTECTION_BYPASS
-  ? { "x-vercel-protection-bypass": process.env.DEPLOYMENT_PROTECTION_BYPASS }
+  ? {
+      "x-vercel-protection-bypass": process.env.DEPLOYMENT_PROTECTION_BYPASS,
+      "x-vercel-set-bypass-cookie": "true",
+    }
   : {};
+const proxyURL = process.env.HTTPS_PROXY ?? process.env.HTTP_PROXY;
+const parsedProxy = proxyURL ? new URL(proxyURL) : undefined;
+const proxy = parsedProxy
+  ? {
+      server: `${parsedProxy.protocol}//${parsedProxy.host}`,
+      username: decodeURIComponent(parsedProxy.username),
+      password: decodeURIComponent(parsedProxy.password),
+    }
+  : undefined;
 const browser = await chromium.launch({
   executablePath:
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
     (existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined),
+  proxy,
 });
-const desktop = await browser.newContext({ baseURL: origin, extraHTTPHeaders });
+const desktop = await browser.newContext({
+  baseURL: origin,
+  extraHTTPHeaders,
+  proxy,
+});
 const phone = await browser.newContext({
   ...devices["Pixel 7"],
   baseURL: origin,
   extraHTTPHeaders,
+  proxy,
 });
 const a = await desktop.newPage(),
   b = await phone.newPage();
@@ -36,6 +55,10 @@ const email = `smoke-${randomUUID()}@example.test`,
   password = `Test-${randomUUID()}`;
 let accountId,
   stage = "health";
+function progress(value) {
+  stage = value;
+  console.log(`Verification: ${value}`);
+}
 async function cleanup() {
   if (!accountId || !process.env.VERCEL_TOKEN) return;
   const r = await fetch(
@@ -73,7 +96,7 @@ try {
   );
   const manifest = await a.request.get("/manifest.webmanifest");
   assert.equal((await manifest.json()).display, "standalone");
-  stage = "test registration";
+  progress("test registration");
   await a.goto("/auth?mode=register");
   await expect(a.getByText(/Środowisko testowe: adresów e-mail/)).toBeVisible();
   await a.getByLabel("Twoje imię").fill("SaneNod smoke");
@@ -91,13 +114,13 @@ try {
   assert.equal(cookie?.httpOnly, true);
   await a.reload();
   await expect(a.getByText(`Zalogowano jako ${email}`)).toBeVisible();
-  stage = "mobile login";
+  progress("mobile login");
   await b.goto("/auth");
   await b.getByLabel("Adres e-mail").fill(email);
   await b.getByLabel("Hasło", { exact: true }).fill(password);
   await b.getByRole("button", { name: "Zaloguj się" }).click();
   await expect(b).toHaveURL(`${origin}/dashboard`);
-  stage = "pairing";
+  progress("pairing");
   await a.goto("/pair");
   const created = a.waitForResponse(
     (r) => r.url().endsWith("/api/pair") && r.request().method() === "POST",
@@ -105,11 +128,14 @@ try {
   await a.getByRole("button", { name: "Utwórz kod QR" }).click();
   const pairing = await (await created).json();
   assert.equal(pairing.token.length, 64);
+  progress("phone claim");
   await b.goto(`/pair/claim#${pairing.token}`);
   await b.getByRole("button", { name: "Połącz z komputerem" }).click();
   await expect(b.getByText("Urządzenia połączone.")).toBeVisible();
+  progress("desktop observes pairing");
   await expect(a.getByText("Urządzenia połączone.")).toBeVisible();
   assert.equal(await b.evaluate(() => location.hash), "");
+  progress("replay and CSRF");
   assert.equal(
     (
       await b.request.post("/api/pair", {
@@ -128,13 +154,15 @@ try {
     ).status(),
     403,
   );
+  progress("ping/pong");
   await a.getByRole("button", { name: "Sprawdź połączenie" }).click();
   await expect(
     a.getByText("Drugie urządzenie odpowiedziało. Komunikacja działa."),
   ).toBeVisible();
+  progress("revocation");
   await b.getByRole("button", { name: "Zakończ połączenie" }).click();
   await expect(a.getByText("Sesja zakończona", { exact: true })).toBeVisible();
-  stage = "logout isolation";
+  progress("logout isolation");
   await a.goto("/dashboard");
   await a.getByRole("button", { name: "Wyloguj to urządzenie" }).click();
   await expect(a).toHaveURL(`${origin}/auth`);
@@ -142,9 +170,17 @@ try {
   await expect(a).toHaveURL(/\/auth\?next=/);
   await b.goto("/dashboard");
   await expect(b.getByText(`Zalogowano jako ${email}`)).toBeVisible();
-  stage = "PWA offline and cache privacy";
+  progress("PWA offline and cache privacy");
   await b.evaluate(async () => {
-    await navigator.serviceWorker.ready;
+    await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Service worker activation timed out")),
+          30000,
+        ),
+      ),
+    ]);
     if (!navigator.serviceWorker.controller)
       await new Promise((resolve) =>
         navigator.serviceWorker.addEventListener("controllerchange", resolve, {
@@ -199,7 +235,12 @@ try {
     }),
   );
 } catch (error) {
-  console.error(`Deployment verification failed at ${stage} (${error.name}).`);
+  const reason =
+    error.message?.match(/net::[A-Z_]+|Timeout \d+ms exceeded/)?.[0] ??
+    error.message?.split("\n")[0];
+  console.error(
+    `Deployment verification failed at ${stage} (${reason ?? error.name}).`,
+  );
   process.exitCode = 1;
 } finally {
   await browser.close();
