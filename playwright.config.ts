@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 if (existsSync("apps/portal/.env.local"))
   process.loadEnvFile("apps/portal/.env.local");
 export default defineConfig({
+  reporter: process.env.CI ? [["list"], ["github"]] : "list",
   testDir: "./tests/e2e",
   testMatch: "**/portal.spec.ts",
   workers: 1,
