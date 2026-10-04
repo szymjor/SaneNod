@@ -66,3 +66,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @sanenod/desktop build
+      - name: Verify desktop window, sandbox and persistent session
+        run: node scripts/desktop-smoke.mjs
+      - name: Package desktop for the runner platform
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: pnpm --filter @sanenod/desktop package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: apps/desktop/artifacts/*
+          retention-days: 7

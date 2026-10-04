@@ -10,7 +10,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "package": "pnpm build && electron-builder --win --mac --publish never"
+    "package": "pnpm build && electron-builder --publish never"
   },
   "devDependencies": {
     "electron": "44.5.1",

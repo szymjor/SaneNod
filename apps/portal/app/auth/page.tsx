@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AuthForm } from "../../components/auth-form";
-import { configured } from "../../lib/auth";
+import { configured, testAccountsEnabled } from "../../lib/auth";
 import { safeNext } from "@sanenod/auth";
 export default async function Auth({
   searchParams,
@@ -19,6 +19,12 @@ export default async function Auth({
           : "Dobrze Cię widzieć."}
       </h1>
       <p>Jedno konto dla wszystkich Twoich aplikacji i urządzeń.</p>
+      {testAccountsEnabled() && (
+        <p className="notice" role="status">
+          Środowisko testowe: adresów e-mail nie weryfikujemy ani nie wysyłamy
+          wiadomości. Możesz użyć adresu testowego, np. tester@example.test.
+        </p>
+      )}
       {!configured() ? (
         <p className="notice" role="status">
           Konta będą dostępne po podłączeniu usługi logowania.

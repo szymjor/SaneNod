@@ -102,6 +102,8 @@ test("two browser devices share account, pair once, exchange ping, and revoke", 
     });
     await a.goto("/dashboard");
     await a.getByRole("button", { name: "Wyloguj to urządzenie" }).click();
+    // Wait for the server action to clear the cookie before a new navigation.
+    await expect(a).toHaveURL(/\/auth/);
     await a.goto("/dashboard");
     await expect(a).toHaveURL(/\/auth/);
     await b.goto("/dashboard");

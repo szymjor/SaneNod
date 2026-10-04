@@ -56,6 +56,8 @@ Testy bazy i E2E wymagają **lokalnej, izolowanej** bazy po migracji. E2E urucha
 
 Szczegóły: [wdrożenie Vercel](docs/vercel.md), [architektura i granice Etapu 1](docs/architecture.md).
 
-GitHub Actions: lint, typecheck, testy PostgreSQL, build, E2E oraz kompilacja Electron na Windows/macOS. Po przejściu CI osobny workflow wdraża preview PR z tego repozytorium lub produkcję dla `main`. Forki nie otrzymują sekretów wdrożenia.
+GitHub Actions: lint, typecheck, testy PostgreSQL, build, E2E oraz uruchomienie i pakowanie Electron na Windows/macOS. Aktywna integracja GitHub–Vercel automatycznie tworzy preview gałęzi/PR oraz produkcję dla `main`. Opcjonalny workflow deploy przez Actions wymaga jawnego `DEPLOY_VIA_ACTIONS=true` i sekretów; nie uruchamiaj równolegle obu pipeline’ów.
 
-**Nie przechodzimy do Etapu 2**, zanim konta, poczta, pairing HTTPS, wdrożenie preview/production oraz desktop nie zostaną sprawdzone w środowisku docelowym.
+Obecny portal jest **programem testowym**: `AUTH_TEST_MODE=true` umożliwia rejestrację bez potwierdzania e-maila i bez wysyłania poczty. Tryb jest oznaczony w interfejsie. Preview ma oddzielną bazę i sekret. Przed udostępnieniem rzeczywistym użytkownikom wyłącz ten tryb i skonfiguruj zweryfikowanego nadawcę.
+
+**Nie przechodzimy do Etapu 2**, zanim konta testowe, pairing HTTPS, wdrożenia preview/production oraz szkielet desktopowy nie zostaną sprawdzone. Polecenie `DEPLOYMENT_TEST_URL=https://sanenod.vercel.app NODE_USE_ENV_PROXY=1 node scripts/verify-deployment.mjs` sprawdza wdrożenie testowe; rejestruje własne konto tymczasowe i usuwa wyłącznie to konto przez dostęp do Vercel/Neon, jeśli jest dostępny. Nie uruchamiaj na tym wdrożeniu lokalnych testów bazy ani fixture’ów.

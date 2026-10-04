@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Panel } from "@sanenod/ui";
-import { configured, auth } from "../../lib/auth";
+import { configured, auth, testAccountsEnabled } from "../../lib/auth";
 import { headers } from "next/headers";
 import { signOut } from "../auth/actions";
 export const dynamic = "force-dynamic";
@@ -24,6 +24,11 @@ export default async function Dashboard() {
       <span className="eyebrow">Twój pulpit</span>
       <h1>Wszystko w jednym miejscu.</h1>
       <p className="lead">Zalogowano jako {user.email}</p>
+      {testAccountsEnabled() && (
+        <p className="notice">
+          Środowisko testowe — konta nie mają potwierdzonego adresu e-mail.
+        </p>
+      )}
       <div className="actions">
         <Link className="button secondary" href="/pair">
           Połącz urządzenia ⇄

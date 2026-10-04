@@ -1,6 +1,8 @@
 # Vercel — konfiguracja docelowa
 
-Kod jest przygotowany pod projekt **sanenod**. Utworzenie lokalnych plików nie oznacza utworzenia projektu na koncie.
+Projekt **sanenod** istnieje w zespole **SaneNod** (slug `sanenod`): https://vercel.com/sanenod/sanenod. Portal: https://sanenod.vercel.app. Project ID `prj_fq3PbZQCuXaej0XAHCRz2ENvSF2v`, Org ID `team_T7AfBn4j1kIvKRiuLz4lXlSZ`. To projekt na koncie właściciela, bez limitu anonimowego wdrożenia.
+
+Obecne wdrożenie jest programem testowym (`AUTH_TEST_MODE=true`), zgodnie z decyzją właściciela. Produkcyjny zasób Neon: `neon-teal-ladder`; preview: `sanenod-preview`. Oba schematy kont i parowania zostały przygotowane. Bazy i sekrety sesji są odrębne.
 
 ## Projekt
 
@@ -31,18 +33,20 @@ Dla preview stabilny dedykowany origin jest najprostszy. Jeżeli używasz losowy
 
 ## GitHub Actions
 
-Ustaw `VERCEL_TOKEN` jako sekret repo/środowisk `preview` i `production`. Ustaw `VERCEL_ORG_ID` i `VERCEL_PROJECT_ID` jako Variables; skrypt projektu wyświetla wyłącznie te identyfikatory, nigdy token. Skonfiguruj ochronę gałęzi main i zasady dostępu do środowisk. Workflow deploy działa dopiero po CI i nie wykonuje kodu z forków z sekretami.
+Aktywna integracja GitHub–Vercel jest połączona z `szymjor/SaneNod`: gałęzie/PR dostają preview, `main` produkcję. Actions wykonuje CI i buduje instalatory desktopowe. Aktualna integracja Codex z GitHub zwracała 403 dla Secrets, Variables i reguł ochrony gałęzi; nie twierdzimy, że te ustawienia zostały zapisane.
+
+Opcjonalna alternatywa to deploy w Actions: wyłącz automatyczne deploy w Vercel Git Integration, ustaw `DEPLOY_VIA_ACTIONS=true`, a następnie ustaw `VERCEL_TOKEN` jako sekret repo/środowisk `preview` i `production`. Ustaw `VERCEL_ORG_ID` i `VERCEL_PROJECT_ID` jako Variables; skrypt projektu wyświetla wyłącznie te identyfikatory, nigdy token. Skonfiguruj ochronę gałęzi main i zasady dostępu do środowisk. Workflow deploy działa dopiero po CI i nie wykonuje kodu z forków z sekretami.
 
 Nie ustawiamy produkcyjnych danych w CI testowym. CI ma własny Postgres i świeży sekret. Workflow nie migruje produkcyjnej bazy automatycznie.
 
 ## Sprawdzenie po wdrożeniu
 
 1. `/api/health` zwraca `200` i `{"status":"ok"}`.
-2. Zarejestruj konto, odbierz e-mail, potwierdź je i zaloguj.
+2. W trybie testowym zarejestruj konto z adresem testowym i zaloguj się. W trybie dla rzeczywistych użytkowników dodatkowo odbierz e-mail i potwierdź adres.
 3. Odśwież pulpit; konto nadal jest dostępne. Wylogowanie jednego urządzenia nie wylogowuje drugiego.
 4. Na telefonie zaloguj to samo konto, zeskanuj QR z komputera, sprawdź ping/pong i zakończ połączenie.
 5. Zainstaluj PWA i sprawdź ekran offline bez danych konta w cache.
 6. Uruchom Electron z `SANENOD_PORTAL_URL` wskazującym HTTPS i sprawdź sesję.
 7. Zweryfikuj deploy preview PR i produkcji main po przejściu CI.
 
-Dopiero te wyniki potwierdzają działanie infrastruktury docelowej.
+Wyniki potwierdzają działanie uzgodnionej infrastruktury testowej. Przed uruchomieniem dla rzeczywistych użytkowników skonfiguruj pocztę oraz wyłącz `AUTH_TEST_MODE`; nie uznawaj testowych kont za zweryfikowane adresy.

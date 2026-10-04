@@ -12,6 +12,7 @@ jobs:
   deploy:
     # Never execute fork code with deployment secrets. CI must pass first.
     if: >-
+      vars.DEPLOY_VIA_ACTIONS == 'true' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       (github.event.workflow_run.event == 'pull_request' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'))

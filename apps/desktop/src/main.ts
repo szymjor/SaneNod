@@ -1,7 +1,5 @@
 import { app, BrowserWindow, session } from "electron";
-const raw = process.env.SANENOD_PORTAL_URL;
-if (!raw)
-  throw new Error("Set SANENOD_PORTAL_URL to the deployed SaneNod portal URL.");
+const raw = process.env.SANENOD_PORTAL_URL ?? "https://sanenod.vercel.app";
 const portal = new URL(raw);
 const local =
   portal.protocol === "http:" &&

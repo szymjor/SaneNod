@@ -4,6 +4,9 @@ import { Pool } from "pg";
 import { attachDatabasePool } from "@vercel/functions";
 let instance: ReturnType<typeof createAuth> | undefined;
 let connectionPool: Pool | undefined;
+export function testAccountsEnabled(): boolean {
+  return process.env.AUTH_TEST_MODE === "true";
+}
 export function authOrigin(): string | undefined {
   return (
     process.env.BETTER_AUTH_URL ||
@@ -46,13 +49,15 @@ function createAuth() {
       enabled: true,
       minPasswordLength: 12,
       maxPasswordLength: 128,
-      requireEmailVerification: process.env.NODE_ENV === "production",
+      requireEmailVerification:
+        process.env.NODE_ENV === "production" && !testAccountsEnabled(),
     },
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: !testAccountsEnabled(),
       autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
-        if (process.env.NODE_ENV !== "production") return;
+        if (process.env.NODE_ENV !== "production" || testAccountsEnabled())
+          return;
         if (!process.env.RESEND_API_KEY || !process.env.AUTH_EMAIL_FROM)
           throw new Error("Production email delivery is not configured");
         const result = await fetch("https://api.resend.com/emails", {

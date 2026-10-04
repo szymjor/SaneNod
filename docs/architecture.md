@@ -4,7 +4,7 @@
 
 Vercel hostuje portal Next.js i krótkie funkcje HTTP. Postgres jest zarządzanym dodatkiem Vercel Marketplace (np. Neon). Better Auth przechowuje tożsamości, hashe haseł i sesje w centralnej bazie. Klient nie otrzymuje hasła do bazy. `DATABASE_URL` z TLS pochodzi od dostawcy; weryfikacji certyfikatów nie wyłączamy. Pool ma limit pięciu połączeń na instancję i integrację z cyklem życia funkcji Vercel.
 
-W produkcji rejestracja wymaga potwierdzenia e-mail; wiadomości wysyła Resend, także dostępny jako dodatek Marketplace. Brak skonfigurowanej poczty blokuje ten krok. Lokalnie rejestracja nie wymaga poczty; testy nie dowodzą dostarczenia e-maila w produkcji. Sesje trwają 7 dni i są odświeżane. Better Auth zapewnia obsługę cookies, ochronę żądań autoryzacji i weryfikację sesji po stronie serwera. Wszystkie aplikacje mają jedną domenę: cookie sesji działa dla ścieżek portalu, nie dla dowolnych obcych domen.
+W docelowym trybie produkcyjnym rejestracja wymaga potwierdzenia e-mail; wiadomości wysyła Resend, także dostępny jako dodatek Marketplace. Brak skonfigurowanej poczty blokuje ten krok. Lokalnie rejestracja nie wymaga poczty; testy nie dowodzą dostarczenia e-maila w produkcji. Na życzenie właściciela obecne wdrożenie jest programem testowym: jawne `AUTH_TEST_MODE=true` wyłącza wysyłanie i weryfikację e-maili, a interfejs oznacza konta jako testowe. Domyślna wartość tej opcji nie wyłącza produkcyjnej weryfikacji. Nie traktujemy tego jako sprawdzenia doręczania poczty. Sesje trwają 7 dni i są odświeżane. Better Auth zapewnia obsługę cookies, ochronę żądań autoryzacji i weryfikację sesji po stronie serwera. Wszystkie aplikacje mają jedną domenę: cookie sesji działa dla ścieżek portalu, nie dla dowolnych obcych domen.
 
 ## Parowanie
 
@@ -26,10 +26,10 @@ Okno Electron ma sandbox, contextIsolation, brak Node w rendererze i nie udostę
 
 1. Przejście lokalnego CI oraz testu rejestracji/logowania.
 2. Utworzony projekt Vercel i odrębne bazy/sekrety dla preview oraz produkcji.
-3. Dostarczony e-mail weryfikacyjny, logowanie i odświeżenie sesji w HTTPS.
+3. Rejestracja, logowanie i odświeżenie sesji w HTTPS w uzgodnionym trybie testowym. Dla rzeczywistych użytkowników dodatkowo dostarczony e-mail weryfikacyjny.
 4. Parowanie telefonu i komputera, wiadomość ping/pong oraz odwołanie połączenia.
 5. Udany preview PR i deploy main po CI.
-6. Uruchomienie Electron na Windows/macOS, logowanie i potwierdzenie uprawnień kamery.
+6. Uruchomienie i pakowanie Electron na Windows/macOS, trwałość cookies, sandbox i polityka uprawnień. CI używa symulowanej kamery; fizyczne czujniki i pomiary należą do Etapu 2.
 
 ## Granice przyszłego Kalibratora
 
