@@ -1,0 +1,46 @@
+{
+  "name": "@sanenod/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "SaneNod desktop shell",
+  "author": "SaneNod",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "pnpm build && electron .",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "package": "pnpm build && electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "^26.9.0",
+    "typescript": "5.9.3",
+    "@types/node": "^24.0.0"
+  },
+  "build": {
+    "appId": "pl.sanenod.desktop",
+    "productName": "SaneNod",
+    "directories": {
+      "output": "artifacts"
+    },
+    "files": [
+      "dist/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities",
+      "extendInfo": {
+        "NSCameraUsageDescription": "Aparat s\u0142u\u017cy do pomiar\u00f3w w aplikacjach SaneNod."
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}

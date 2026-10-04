@@ -1,0 +1,12 @@
+node_modules/
+**/node_modules/
+**/.next/
+**/.turbo/
+.cache/
+**/dist/
+**/artifacts/
+**/next-env.d.ts
+pnpm-lock.yaml
+**/.env*
+test-results/
+playwright-report/
