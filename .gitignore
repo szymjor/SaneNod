@@ -13,3 +13,5 @@ supabase/.branches/
 apps/desktop/artifacts/
 .vercel/
 *.tsbuildinfo
+
+apps/portal/next-env.d.ts
