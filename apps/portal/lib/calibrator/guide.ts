@@ -2,6 +2,7 @@ import { summarizePixels } from "./measurement";
 export const guideTests = [
   {
     id: "shadows",
+    task: "Patrząc na monitor, sprawdź, czy ciemne pola odróżniają się od czarnego tła.",
     name: "Rozróżnij ciemne tony",
     short: "Cienie",
     levels: [0, 5, 10, 15, 20, 25, 30],
@@ -15,6 +16,7 @@ export const guideTests = [
   },
   {
     id: "highlights",
+    task: "Sprawdź oczami, czy jasne pola się nie zlewają. W razie potrzeby obniż kontrast.",
     name: "Zachowaj jasne szczegóły",
     short: "Jasne tony",
     levels: [225, 230, 235, 240, 245, 250, 255],
@@ -28,6 +30,7 @@ export const guideTests = [
   },
   {
     id: "white",
+    task: "Ustaw wygodną jasność i wybierz w menu monitora punkt bieli z wywiadu.",
     name: "Ustaw komfortową biel",
     short: "Biel",
     levels: [255],
@@ -41,6 +44,7 @@ export const guideTests = [
   },
   {
     id: "uniform",
+    task: "Szukaj plam na szarym tle monitora. Telefonem porównasz fragmenty jednego kadru.",
     name: "Sprawdź jednolite szare tło",
     short: "Jednolitość",
     levels: [128],
@@ -54,6 +58,7 @@ export const guideTests = [
   },
   {
     id: "black",
+    task: "Obejrzyj plamy i poświaty na monitorze z normalnej pozycji pracy.",
     name: "Obejrzyj czerń bez podbijania zdjęcia",
     short: "Czerń",
     levels: [0],
@@ -67,6 +72,7 @@ export const guideTests = [
   },
   {
     id: "gradient",
+    task: "Szukaj wyraźnych pasów lub zafarbu w przejściu od czerni do bieli.",
     name: "Sprawdź płynność przejść",
     short: "Gradient",
     levels: [],

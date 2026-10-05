@@ -134,16 +134,22 @@ export function CameraGrid({
 }
 export function GuideInstructions({
   test,
+  compact = false,
 }: {
   test: (typeof guideTests)[number];
+  compact?: boolean;
 }) {
   return (
     <>
-      <p>{test.instruction}</p>
+      <p>{compact ? test.task : test.instruction}</p>
       <details>
-        <summary>Jakich ustawień szukać?</summary>
+        <summary>
+          {compact ? "Co sprawdzić i co ustawić?" : "Jakich ustawień szukać?"}
+        </summary>
+        {compact && <p>{test.instruction}</p>}
         <p className="control-names">{test.controls}</p>
         <p>{test.help}</p>
+        {compact && <p className="muted">{test.camera}</p>}
       </details>
     </>
   );
@@ -178,6 +184,12 @@ export function GuideNavigation({
       >
         Następny test →
       </button>
+      {index === guideTests.length - 1 && (
+        <p className="muted guide-last">
+          To ostatni test. Na PC wyjdź z pełnego ekranu klawiszem Esc i wybierz
+          „Zakończ testy ustawień”. Potem możesz zapisać serię pomiarową.
+        </p>
+      )}
     </div>
   );
 }

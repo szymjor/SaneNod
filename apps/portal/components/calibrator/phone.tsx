@@ -421,7 +421,7 @@ export function CalibratorPhone() {
   return (
     <section className="cal-panel phone-panel">
       <span className="eyebrow">Telefon · Czujnik orientacyjny</span>
-      <h1>{guideTest ? "Ustaw monitor z telefonem." : "Zmierz ekran."}</h1>
+      <h1>{guideTest ? "Ustaw monitor." : "Zmierz ekran."}</h1>
       {!pairId ? (
         <>
           <p>
@@ -453,18 +453,17 @@ export function CalibratorPhone() {
           {guideTest && guide && (
             <div className="phone-guide">
               <h2>{guideTest.name}</h2>
-              <GuideInstructions test={guideTest} />
+              <GuideInstructions test={guideTest} compact />
               <GuideNavigation
                 guide={guide}
                 send={sendGuide}
                 busy={guideBusy}
               />
-              <p className="muted">{guideTest.camera}</p>
             </div>
           )}
           <p>
             {guideTest ? (
-              "Przeciągnij palcem po podglądzie od jednego narożnika ekranu do przeciwnego, pomijając ramkę i menu. Trzymaj aparat prostopadle i nieruchomo."
+              "Zaznacz ekran w podglądzie palcem: od narożnika do narożnika, bez ramki i menu. Ustaw telefon prostopadle."
             ) : (
               <>
                 Wypełnij zaznaczony kwadrat wzorcem z monitora. Trzymaj telefon
@@ -564,7 +563,10 @@ export function CalibratorPhone() {
             </button>
           )}
           {guideTest && camera && (
-            <CameraGrid reading={liveReading} readingAt={liveAt} />
+            <details>
+              <summary>Mapa 5×5 i jakość odczytu</summary>
+              <CameraGrid reading={liveReading} readingAt={liveAt} />
+            </details>
           )}
           {guideTest && guide && (
             <GuideNote
