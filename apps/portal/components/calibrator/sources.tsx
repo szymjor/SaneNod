@@ -8,6 +8,12 @@ export function Sources() {
         seria nie mierzy pokrycia gamutu ani ΔE. Import XYZ zakłada poprawnie
         użyty kolorymetr i właściwą korekcję dla ekranu.
       </p>
+      <p>
+        Testy telefonu i PC wspierają ręczne ustawianie monitora. Siatka 5×5
+        analizuje kody obrazu kamery; nie określa tolerancji monitora ani
+        fizycznej równomierności. Automatyczna ekspozycja, balans bieli,
+        obiektyw i odblaski wpływają na obraz.
+      </p>
       <ul>
         <li>
           <a
@@ -124,6 +130,35 @@ export function Sources() {
           >
             TFTCentral: kolejność ustawień OSD, ograniczenia profili i
             instrukcja Windows
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.rtings.com/monitor/tests/picture-quality/gray-uniformity"
+            target="_blank"
+            rel="noreferrer"
+          >
+            RTINGS: jednolite szare tło i kontrolowane warunki fotografowania w
+            testach równomierności
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.eizo.com/products/coloredge/cg2700x/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            EIZO: Digital Uniformity Equalizer (DUE) — przykład funkcji
+            wyrównywania obrazu
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/getCapabilities"
+            target="_blank"
+            rel="noreferrer"
+          >
+            MDN: funkcje kamery zależą od urządzenia i przeglądarki
           </a>
         </li>
         <li>

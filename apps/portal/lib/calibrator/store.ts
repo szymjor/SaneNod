@@ -103,19 +103,46 @@ export async function createRun(
     if (!status.active || !status.paired_at || status.role !== "desktop")
       throw new PairingError(409, "Najpierw połącz telefon z tym komputerem.");
   }
-  const result = await db.query<StoredRun>(
-    `INSERT INTO calibrations(id,owner_id,desktop_session_id,pairing_id,settings,sensor,sample_nonce) VALUES($1,$2,$3,$4,$5::jsonb,$6,$7) RETURNING *`,
-    [
-      randomUUID(),
-      identity.userId,
-      identity.sessionId,
-      pairID,
-      JSON.stringify(settings),
-      body.sensor,
-      randomUUID(),
-    ],
-  );
-  return expose(result.rows[0], identity);
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    if (pairID) {
+      const pair = await client.query(
+        "SELECT id FROM pairing_sessions WHERE id=$1 AND owner_id=$2 AND desktop_session_id=$3 AND phone_session_id IS NOT NULL AND revoked_at IS NULL AND expires_at>now() FOR UPDATE",
+        [pairID, identity.userId, identity.sessionId],
+      );
+      if (!pair.rowCount)
+        throw new PairingError(409, "Połączenie telefonu nie jest aktywne.");
+      const guide = await client.query(
+        "SELECT test FROM calibration_guides WHERE pairing_id=$1",
+        [pairID],
+      );
+      if (guide.rows[0]?.test)
+        throw new PairingError(
+          409,
+          "Zakończ testy ustawień przed serią pomiarową.",
+        );
+    }
+    const result = await client.query<StoredRun>(
+      `INSERT INTO calibrations(id,owner_id,desktop_session_id,pairing_id,settings,sensor,sample_nonce) VALUES($1,$2,$3,$4,$5::jsonb,$6,$7) RETURNING *`,
+      [
+        randomUUID(),
+        identity.userId,
+        identity.sessionId,
+        pairID,
+        JSON.stringify(settings),
+        body.sensor,
+        randomUUID(),
+      ],
+    );
+    await client.query("COMMIT");
+    return expose(result.rows[0], identity);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 export async function mutateRun(
   db: Pool,

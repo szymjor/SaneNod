@@ -251,6 +251,139 @@ try {
   await expect(
     b.getByRole("button", { name: "Zablokuj dostępne automatyki" }),
   ).toBeVisible();
+  progress("synchronized monitor tests and live phone region");
+  await a.getByRole("button", { name: "Uruchom testy z telefonem" }).click();
+  await expect(
+    b.getByRole("heading", { name: "Rozróżnij ciemne tony" }),
+  ).toBeVisible();
+  await expect(
+    a.getByRole("button", { name: "Rozpocznij serię 10 wzorców" }),
+  ).toBeDisabled();
+  const initialGuide = (
+    await (
+      await b.request.get(
+        `/api/calibrator/guide?pairingId=${calibrationPair.id}`,
+      )
+    ).json()
+  ).guide;
+  assert.equal(
+    (
+      await a.request.post("/api/calibrator/guide", {
+        headers: { origin: "https://evil.example" },
+        data: {
+          action: "stop",
+          pairingId: calibrationPair.id,
+          revision: initialGuide.revision,
+        },
+      })
+    ).status(),
+    403,
+  );
+  await a.getByRole("button", { name: "Test na pełnym ekranie" }).click();
+  await expect
+    .poll(() => a.evaluate(() => Boolean(document.fullscreenElement)))
+    .toBe(true);
+  await b.getByRole("button", { name: "Następny test →" }).click();
+  await expect(
+    a.getByRole("img", { name: "Test monitora: Zachowaj jasne szczegóły" }),
+  ).toBeVisible();
+  await b.getByRole("button", { name: "Następny test →" }).click();
+  await expect(
+    b.getByRole("heading", { name: "Ustaw komfortową biel" }),
+  ).toBeVisible();
+  await b.getByRole("button", { name: "Następny test →" }).click();
+  await expect(
+    a.getByRole("img", { name: "Test monitora: Sprawdź jednolite szare tło" }),
+  ).toBeVisible();
+  await expect(
+    a.getByRole("img", { name: "Mapa kodów RGB kamery, siatka 5 na 5" }),
+  ).toBeVisible();
+  const currentGuide = (
+    await (
+      await a.request.get(
+        `/api/calibrator/guide?pairingId=${calibrationPair.id}`,
+      )
+    ).json()
+  ).guide;
+  assert.equal(currentGuide.reading.cells.length, 25);
+  assert.equal(
+    (
+      await b.request.post("/api/calibrator/guide", {
+        headers: { origin },
+        data: {
+          action: "reading",
+          pairingId: calibrationPair.id,
+          revision: initialGuide.revision,
+          reading: currentGuide.reading,
+        },
+      })
+    ).status(),
+    409,
+  );
+  assert.equal(
+    (
+      await a.request.post("/api/calibrator/guide", {
+        headers: { origin },
+        data: {
+          action: "reading",
+          pairingId: calibrationPair.id,
+          revision: currentGuide.revision,
+          reading: currentGuide.reading,
+        },
+      })
+    ).status(),
+    403,
+  );
+  await b.getByText("Dopasuj obszar bez przeciągania", { exact: true }).click();
+  await b.getByLabel(/Szerokość:/).fill("0.5");
+  assert.equal(
+    await b.locator(".camera-crop").evaluate((el) => el.style.width),
+    "50%",
+  );
+  await b
+    .getByText("Zapisz obserwację i ustawienia monitora", { exact: true })
+    .click();
+  await b
+    .getByLabel("Co widzisz i co zmieniasz?")
+    .fill("Testowe ustawienie Backlight 30");
+  await b
+    .getByRole("button", { name: "Zapisz obserwację", exact: true })
+    .click();
+  await expect(
+    b.getByText("Obserwacja zapisana.", { exact: true }),
+  ).toBeVisible();
+  await b.reload();
+  await expect(
+    b.getByRole("heading", { name: "Sprawdź jednolite szare tło" }),
+  ).toBeVisible();
+  await b
+    .getByText("Zapisz obserwację i ustawienia monitora", { exact: true })
+    .click();
+  await expect(b.getByLabel("Co widzisz i co zmieniasz?")).toHaveValue(
+    "Testowe ustawienie Backlight 30",
+  );
+  await b.getByRole("button", { name: "Włącz kamerę" }).click();
+  await a.evaluate(() => document.exitFullscreen());
+  if (process.env.SANENOD_SCREENSHOTS) {
+    await a.screenshot({
+      path: ".cache/calibrator-guide-desktop.png",
+      fullPage: true,
+    });
+    await b.screenshot({
+      path: ".cache/calibrator-guide-phone.png",
+      fullPage: true,
+    });
+  }
+  const observationDownload = a.waitForEvent("download");
+  await a.getByRole("button", { name: "Pobierz obserwacje CSV" }).click();
+  assert.equal(
+    (await observationDownload).suggestedFilename(),
+    "sanenod-testy-monitora.csv",
+  );
+  await a.getByRole("button", { name: "Zakończ testy ustawień" }).click();
+  await expect(
+    b.getByRole("heading", { name: "Sprawdź jednolite szare tło" }),
+  ).toBeHidden();
   await a.getByRole("button", { name: "Rozpocznij serię 10 wzorców" }).click();
   const names = [
     "Czerń",
@@ -363,6 +496,10 @@ try {
         "calibrator onboarding and external CSV",
         "six fixed ICC exports",
         "mobile camera samples and saved history",
+        "synchronized fullscreen monitor tests",
+        "live phone region and relative grid",
+        "guide CSRF, roles and stale revision",
+        "guide observations, reload and CSV",
       ],
     }),
   );

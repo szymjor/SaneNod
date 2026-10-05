@@ -57,13 +57,14 @@ async function run() {
       "Neon-Connection-String": connection,
     },
     body: JSON.stringify({
-      query: "SELECT to_regclass('public.calibrations') IS NOT NULL AS ready",
+      query:
+        "SELECT to_regclass('public.calibrations') IS NOT NULL AND to_regclass('public.calibration_guides') IS NOT NULL AS ready",
       params: [],
     }),
   });
   if (!verified.ok || !(await verified.json()).rows[0]?.ready)
     throw new Error("Calibration schema verification failed.");
-  console.log(`${target}: calibration schema verified`);
+  console.log(`${target}: calibration and guide schemas verified`);
 }
 try {
   await run();

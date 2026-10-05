@@ -111,7 +111,7 @@ test("guided external measurement saves history, compares repeats and downloads 
 test("paired phone captures real video frames, computer advances and camera result stays relative", async ({
   browser,
 }) => {
-  test.setTimeout(120000);
+  test.setTimeout(180000);
   const email = `camera-${randomUUID()}@example.test`,
     password = `Test-${randomUUID()}`,
     user = await testUser(email, password);
@@ -174,6 +174,88 @@ test("paired phone captures real video frames, computer advances and camera resu
         path: ".cache/calibrator-phone.png",
         fullPage: true,
       });
+    // PC pattern and phone instructions remain synchronized without uploading images.
+    await a.getByRole("button", { name: "Uruchom testy z telefonem" }).click();
+    await expect(
+      b.getByRole("heading", { name: "Rozróżnij ciemne tony" }),
+    ).toBeVisible();
+    await expect(
+      a.getByRole("button", { name: "Rozpocznij serię 10 wzorców" }),
+    ).toBeDisabled();
+    await a.getByRole("button", { name: "Test na pełnym ekranie" }).click();
+    await expect
+      .poll(() => a.evaluate(() => Boolean(document.fullscreenElement)))
+      .toBe(true);
+    await b.getByRole("button", { name: "Następny test →" }).click();
+    await expect(
+      a.getByRole("img", { name: "Test monitora: Zachowaj jasne szczegóły" }),
+    ).toBeVisible();
+    await b.getByRole("button", { name: "Następny test →" }).click();
+    await expect(
+      b.getByRole("heading", { name: "Ustaw komfortową biel" }),
+    ).toBeVisible();
+    await b.getByRole("button", { name: "Następny test →" }).click();
+    await expect(
+      a.getByRole("img", {
+        name: "Test monitora: Sprawdź jednolite szare tło",
+      }),
+    ).toBeVisible();
+    await expect(
+      a.getByRole("img", { name: "Mapa kodów RGB kamery, siatka 5 na 5" }),
+    ).toBeVisible();
+    await b
+      .getByText("Dopasuj obszar bez przeciągania", { exact: true })
+      .click();
+    await b.getByLabel(/Szerokość:/).fill("0.5");
+    expect(
+      await b
+        .locator(".camera-crop")
+        .evaluate((el) => (el as HTMLElement).style.width),
+    ).toBe("50%");
+    await b
+      .getByText("Zapisz obserwację i ustawienia monitora", { exact: true })
+      .click();
+    await b
+      .getByLabel("Co widzisz i co zmieniasz?")
+      .fill("Backlight 30; kontrola telefonu");
+    await b
+      .getByRole("button", { name: "Zapisz obserwację", exact: true })
+      .click();
+    await expect(
+      b.getByText("Obserwacja zapisana.", { exact: true }),
+    ).toBeVisible();
+    await b.reload();
+    await expect(
+      b.getByRole("heading", { name: "Sprawdź jednolite szare tło" }),
+    ).toBeVisible();
+    await b
+      .getByText("Zapisz obserwację i ustawienia monitora", { exact: true })
+      .click();
+    await expect(b.getByLabel("Co widzisz i co zmieniasz?")).toHaveValue(
+      "Backlight 30; kontrola telefonu",
+    );
+    await b.getByRole("button", { name: "Włącz kamerę" }).click();
+    // Phone changes also work while the PC is fullscreen.
+    await b.getByRole("button", { name: "Następny test →" }).click();
+    await expect(
+      a.getByRole("img", {
+        name: "Test monitora: Obejrzyj czerń bez podbijania zdjęcia",
+      }),
+    ).toBeVisible();
+    await b.getByRole("button", { name: "Następny test →" }).click();
+    await expect(
+      a.getByRole("img", { name: "Test monitora: Sprawdź płynność przejść" }),
+    ).toBeVisible();
+    await a.evaluate(() => document.exitFullscreen());
+    const download = a.waitForEvent("download");
+    await a.getByRole("button", { name: "Pobierz obserwacje CSV" }).click();
+    expect((await download).suggestedFilename()).toBe(
+      "sanenod-testy-monitora.csv",
+    );
+    await a.getByRole("button", { name: "Zakończ testy ustawień" }).click();
+    await expect(
+      b.getByRole("heading", { name: "Sprawdź płynność przejść" }),
+    ).toBeHidden();
     await a
       .getByRole("button", { name: "Rozpocznij serię 10 wzorców" })
       .click();
