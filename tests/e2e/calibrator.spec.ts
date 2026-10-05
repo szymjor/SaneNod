@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, devices } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { patches } from "../../apps/portal/lib/calibrator/measurement";
@@ -115,7 +115,10 @@ test("paired phone captures real video frames, computer advances and camera resu
     user = await testUser(email, password);
   const db = new Pool({ connectionString: process.env.DATABASE_URL });
   const desktop = await browser.newContext(),
-    phone = await browser.newContext({ permissions: ["camera"] });
+    phone = await browser.newContext({
+      ...devices["Pixel 7"],
+      permissions: ["camera"],
+    });
   const a = await desktop.newPage(),
     b = await phone.newPage();
   try {
@@ -138,6 +141,11 @@ test("paired phone captures real video frames, computer advances and camera resu
     await expect(
       b.getByRole("button", { name: "Zablokuj dostępne automatyki" }),
     ).toBeVisible();
+    if (process.env.SANENOD_SCREENSHOTS)
+      await b.screenshot({
+        path: ".cache/calibrator-phone.png",
+        fullPage: true,
+      });
     await a
       .getByRole("button", { name: "Rozpocznij serię 10 wzorców" })
       .click();
