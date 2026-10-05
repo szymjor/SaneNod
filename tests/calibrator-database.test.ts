@@ -13,6 +13,11 @@ import {
   phoneRun,
   history,
 } from "../apps/portal/lib/calibrator/store";
+import {
+  readGuide,
+  mutateGuide,
+} from "../apps/portal/lib/calibrator/guide-store";
+import { summarizeGrid } from "../apps/portal/lib/calibrator/guide";
 import { defaults } from "../apps/portal/lib/calibrator/standards";
 import { patches } from "../apps/portal/lib/calibrator/measurement";
 const url = process.env.DATABASE_URL;
@@ -122,6 +127,104 @@ it("binds camera samples to the paired phone and nonce, atomically rejects repla
     }),
   ).rejects.toMatchObject({ status: 409 });
 });
+it("syncs live patterns, binds camera feedback to revision and phone, and isolates other sessions", async () => {
+  const pair = await createPairing(db, desktop);
+  await claimPairing(db, phone, pair.token);
+  await expect(
+    mutateGuide(db, phone, { action: "start", pairingId: pair.id }),
+  ).rejects.toMatchObject({ status: 403 });
+  let guide = await mutateGuide(db, desktop, {
+    action: "start",
+    pairingId: pair.id,
+  });
+  expect((await readGuide(db, phone, pair.id))?.test).toBe("shadows");
+  for (const identity of [third, foreign])
+    await expect(readGuide(db, identity, pair.id)).rejects.toMatchObject({
+      status: 404,
+    });
+  const reading = summarizeGrid(new Uint8ClampedArray(100 * 4), 10, 10, false);
+  await expect(
+    mutateGuide(db, desktop, {
+      action: "reading",
+      pairingId: pair.id,
+      revision: guide.revision,
+      reading,
+    }),
+  ).rejects.toMatchObject({ status: 403 });
+  const oldRevision = guide.revision;
+  guide = await mutateGuide(db, phone, {
+    action: "select",
+    pairingId: pair.id,
+    revision: oldRevision,
+    test: "uniform",
+  });
+  await expect(
+    mutateGuide(db, phone, {
+      action: "reading",
+      pairingId: pair.id,
+      revision: oldRevision,
+      reading,
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  guide = await mutateGuide(db, phone, {
+    action: "reading",
+    pairingId: pair.id,
+    revision: guide.revision,
+    reading,
+  });
+  expect(guide.reading?.cells).toHaveLength(25);
+  guide = await mutateGuide(db, phone, {
+    action: "note",
+    pairingId: pair.id,
+    revision: guide.revision,
+    note: "Backlight 30",
+  });
+  expect((await readGuide(db, desktop, pair.id))?.observations.uniform).toBe(
+    "Backlight 30",
+  );
+  await expect(
+    createRun(db, desktop, {
+      settings: defaults(),
+      sensor: "camera",
+      pairingId: pair.id,
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  const switches = await Promise.allSettled(
+    [desktop, phone].map((identity) =>
+      mutateGuide(db, identity, {
+        action: "select",
+        pairingId: pair.id,
+        revision: guide.revision,
+        test: "black",
+      }),
+    ),
+  );
+  expect(switches.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+  guide = (await readGuide(db, desktop, pair.id))!;
+  expect(guide.test).toBe("black");
+  expect(guide.reading).toBeNull();
+  guide = await mutateGuide(db, desktop, {
+    action: "stop",
+    pairingId: pair.id,
+    revision: guide.revision,
+  });
+  expect(guide.test).toBeNull();
+  expect(guide.reading).toBeNull();
+  const run = await createRun(db, desktop, {
+    settings: defaults(),
+    sensor: "camera",
+    pairingId: pair.id,
+  });
+  await expect(
+    mutateGuide(db, desktop, { action: "start", pairingId: pair.id }),
+  ).rejects.toMatchObject({ status: 409 });
+  await mutateRun(db, desktop, { action: "cancel", id: run.id });
+  await revokePairing(db, phone, pair.id);
+  await expect(readGuide(db, desktop, pair.id)).rejects.toMatchObject({
+    status: 409,
+  });
+});
+
 it("saves complete external series, retains history after logout, and isolates account ownership", async () => {
   let run = await createRun(db, desktop, {
     settings: { ...defaults(), sensorName: "Test instrument / WLED" },

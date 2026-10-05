@@ -662,3 +662,134 @@ td {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Shared monitor tests: the phone supplies instructions while the PC shows a clean pattern. */
+.live-guide {
+  border: 1px solid #bfd0c2;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 24px 0;
+}
+.guide-steps {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  gap: 8px;
+}
+.guide-steps button {
+  border: 1px solid #bfd0c2;
+  border-radius: 20px;
+  background: transparent;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.guide-steps .selected {
+  background: #193c2c;
+  color: #fff;
+}
+.guide-screen {
+  height: 320px;
+  position: relative;
+  margin: 18px 0;
+  overflow: hidden;
+  border: 1px solid #78847c;
+  border-radius: 12px;
+}
+.guide-bars {
+  position: absolute;
+  inset: 20% 5%;
+  display: flex;
+  gap: 4%;
+}
+.guide-bars > div {
+  flex: 1;
+}
+.guide-screen:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+.guide-exit {
+  display: none;
+}
+.guide-screen:fullscreen .guide-exit {
+  display: block;
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  border: 1px solid #fff;
+  padding: 10px;
+  color: white;
+  background: #172b24;
+  animation: hide-guide-control 3s forwards;
+}
+.guide-screen:fullscreen .guide-exit:hover,
+.guide-exit:focus-visible {
+  animation: none;
+  opacity: 1;
+}
+@keyframes hide-guide-control {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  max-width: 450px;
+  margin: 12px 0;
+}
+.camera-grid > div {
+  padding: 10px 4px;
+  border: 1px solid #a2aba5;
+  text-align: center;
+  border-radius: 3px;
+}
+.camera-grid strong,
+.camera-grid small {
+  display: block;
+  font-size: 13px;
+}
+.camera-grid small {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.camera-select {
+  touch-action: none;
+  cursor: crosshair;
+}
+.phone-guide h2 {
+  font-size: 22px;
+}
+.phone-guide .actions {
+  flex-wrap: wrap;
+}
+.phone-guide .button {
+  padding: 12px;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .live-guide {
+    padding: 14px;
+  }
+  .guide-screen {
+    height: 220px;
+  }
+}
+
+.guide-gradient {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

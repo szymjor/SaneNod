@@ -10,6 +10,7 @@ import type { Run } from "../../lib/calibrator/store";
 import { api, command, message } from "./api";
 import QRCode from "qrcode";
 import Image from "next/image";
+import { LiveGuide } from "./live-guide";
 export type Pair = {
   id: string;
   active?: boolean;
@@ -43,6 +44,7 @@ export function Measurement({
   busy: boolean;
   perform: (fn: () => Promise<void>) => Promise<void>;
 }) {
+  const [guideActive, setGuideActive] = useState(false);
   const [qr, setQR] = useState(""),
     [xyz, setXYZ] = useState([0, 0, 0]),
     [notes, setNotes] = useState(""),
@@ -186,6 +188,9 @@ export function Measurement({
           )}
         </>
       )}
+      {sensor === "camera" && !run && pair?.active && pair.paired_at && (
+        <LiveGuide pairingId={pair.id} onActive={setGuideActive} />
+      )}
       {sensor === "external" && !run && (
         <>
           <label htmlFor="sensor-name">
@@ -218,6 +223,7 @@ export function Measurement({
             onClick={begin}
             disabled={
               busy ||
+              guideActive ||
               (sensor === "camera" && (!pair?.active || !pair.paired_at)) ||
               (sensor === "external" && settings.sensorName.trim().length < 3)
             }
@@ -225,6 +231,11 @@ export function Measurement({
             Rozpocznij serię {patches.length} wzorców
           </button>
         </div>
+      )}
+      {guideActive && (
+        <p className="muted">
+          Zakończ testy ustawień, aby uruchomić serię 10 wzorców.
+        </p>
       )}
       {run?.status === "measuring" && (
         <>

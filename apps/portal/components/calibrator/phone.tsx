@@ -5,6 +5,20 @@ import { authClient } from "@sanenod/auth/client";
 import { patches, summarizePixels } from "../../lib/calibrator/measurement";
 import type { Run } from "../../lib/calibrator/store";
 import { api, command, message } from "./api";
+import {
+  useGuide,
+  GuideInstructions,
+  GuideNavigation,
+  GuideNote,
+  CameraGrid,
+} from "./live-guide";
+import {
+  guideTests,
+  defaultRegion,
+  summarizeGrid,
+  type Region,
+  type GridReading,
+} from "../../lib/calibrator/guide";
 export function CalibratorPhone() {
   const { data: session, isPending } = authClient.useSession();
   const [token] = useState(() =>
@@ -31,6 +45,136 @@ export function CalibratorPhone() {
   const video = useRef<HTMLVideoElement>(null),
     stream = useRef<MediaStream | null>(null),
     wake = useRef<WakeLockSentinel | null>(null);
+  const {
+    guide: storedGuide,
+    send: sendGuide,
+    busy: guideBusy,
+    error: guideError,
+  } = useGuide(
+    pairId,
+    Boolean(session) && run?.status !== "measuring" && run?.status !== "ready",
+  );
+  const guide =
+    run?.status === "measuring" || run?.status === "ready" ? null : storedGuide;
+  const guideTest = guideTests.find((t) => t.id === guide?.test);
+  const [region, setRegion] = useState<Region>(defaultRegion);
+  const [liveResult, setLiveResult] = useState<{
+    key: string;
+    reading: GridReading | null;
+    at: string | null;
+    error: string;
+  }>({ key: "", reading: null, at: null, error: "" });
+  const selection = useRef<{ x: number; y: number } | null>(null);
+  const cameraFrame = useRef<HTMLDivElement>(null);
+  const guideRevision = guide?.revision,
+    guideTestId = guideTest?.id;
+  const liveKey = JSON.stringify([
+    pairId,
+    guideRevision,
+    region,
+    locked,
+    camera,
+  ]);
+  const liveReading = liveResult.key === liveKey ? liveResult.reading : null;
+  const liveAt = liveResult.key === liveKey ? liveResult.at : null;
+  const liveError = liveResult.key === liveKey ? liveResult.error : "";
+  useEffect(() => {
+    if (!camera || !guideTestId || !guideRevision || !pairId) return;
+    let stopped = false;
+    let lastFrameTime = -1;
+    let timer: ReturnType<typeof setTimeout>;
+    const canvas = document.createElement("canvas");
+    canvas.width = 100;
+    canvas.height = 100;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    async function update() {
+      if (stopped) return;
+      try {
+        const v = video.current;
+        if (!context || !v || v.readyState < 2 || !v.videoWidth)
+          throw new Error("Poczekaj na obraz kamery.");
+        const track = stream.current?.getVideoTracks()[0];
+        if (
+          document.visibilityState !== "visible" ||
+          !track ||
+          track.readyState !== "live" ||
+          track.muted ||
+          v.currentTime === lastFrameTime
+        )
+          throw new Error(
+            "Brak nowej klatki. Wróć do widoku telefonu lub uruchom kamerę ponownie.",
+          );
+        lastFrameTime = v.currentTime;
+        context.drawImage(
+          v,
+          v.videoWidth * region.x,
+          v.videoHeight * region.y,
+          v.videoWidth * region.width,
+          v.videoHeight * region.height,
+          0,
+          0,
+          100,
+          100,
+        );
+        const reading = summarizeGrid(
+          context.getImageData(0, 0, 100, 100).data,
+          100,
+          100,
+          locked,
+        );
+        const result = await api("/api/calibrator/guide", {
+          action: "reading",
+          pairingId: pairId,
+          revision: guideRevision,
+          reading,
+        });
+        if (!stopped) {
+          setLiveResult({
+            key: liveKey,
+            reading,
+            at: result.guide.reading_at,
+            error: "",
+          });
+        }
+      } catch (e) {
+        if (!stopped)
+          setLiveResult({
+            key: liveKey,
+            reading: null,
+            at: null,
+            error: message(e),
+          });
+      }
+      if (!stopped) timer = setTimeout(update, 2000);
+    }
+    // Settle after changing the pattern; never label an old frame as the new test.
+    timer = setTimeout(update, 1500);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [camera, guideTestId, guideRevision, pairId, region, locked, liveKey]);
+  function point(event: React.PointerEvent<HTMLDivElement>) {
+    const box = event.currentTarget.getBoundingClientRect();
+    return {
+      x: Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)),
+      y: Math.min(1, Math.max(0, (event.clientY - box.top) / box.height)),
+    };
+  }
+  function selectRegion(event: React.PointerEvent<HTMLDivElement>) {
+    if (!selection.current) return;
+    const end = point(event),
+      start = selection.current;
+    const width = Math.abs(end.x - start.x),
+      height = Math.abs(end.y - start.y);
+    if (width >= 0.1 && height >= 0.1)
+      setRegion({
+        x: Math.min(start.x, end.x),
+        y: Math.min(start.y, end.y),
+        width,
+        height,
+      });
+  }
   const patch = run ? patches[run.current_index] : null;
   const sampled = run?.measurements.some((r) => r.patch === patch?.id) ?? false;
   useEffect(() => {
@@ -277,7 +421,7 @@ export function CalibratorPhone() {
   return (
     <section className="cal-panel phone-panel">
       <span className="eyebrow">Telefon · Czujnik orientacyjny</span>
-      <h1>Zmierz ekran.</h1>
+      <h1>{guideTest ? "Ustaw monitor z telefonem." : "Zmierz ekran."}</h1>
       {!pairId ? (
         <>
           <p>
@@ -296,19 +440,59 @@ export function CalibratorPhone() {
         <>
           <p className="notice">
             Telefon połączony.{" "}
-            {run?.status === "complete"
-              ? "Seria zakończona — wynik jest na komputerze."
-              : !run || run.status === "ready"
-                ? "Czekaj, aż komputer uruchomi serię."
-                : run.status === "cancelled"
-                  ? "Seria została przerwana."
-                  : `Wzorzec ${run.current_index + 1}/${patches.length}: ${patch?.name}.`}
+            {guideTest
+              ? `Test ${guideTests.indexOf(guideTest) + 1}/6: ${guideTest.short}.`
+              : run?.status === "complete"
+                ? "Seria zakończona — wynik jest na komputerze."
+                : !run || run.status === "ready"
+                  ? "Czekaj, aż komputer uruchomi serię."
+                  : run.status === "cancelled"
+                    ? "Seria została przerwana."
+                    : `Wzorzec ${run.current_index + 1}/${patches.length}: ${patch?.name}.`}
           </p>
+          {guideTest && guide && (
+            <div className="phone-guide">
+              <h2>{guideTest.name}</h2>
+              <GuideInstructions test={guideTest} />
+              <GuideNavigation
+                guide={guide}
+                send={sendGuide}
+                busy={guideBusy}
+              />
+              <p className="muted">{guideTest.camera}</p>
+            </div>
+          )}
           <p>
-            Wypełnij zaznaczony kwadrat wzorcem z monitora. Trzymaj telefon
-            nieruchomo, bez odblasków.
+            {guideTest ? (
+              "Przeciągnij palcem po podglądzie od jednego narożnika ekranu do przeciwnego, pomijając ramkę i menu. Trzymaj aparat prostopadle i nieruchomo."
+            ) : (
+              <>
+                Wypełnij zaznaczony kwadrat wzorcem z monitora. Trzymaj telefon
+                nieruchomo, bez odblasków.
+              </>
+            )}
           </p>
-          <div className="camera-frame" style={{ aspectRatio: aspect }}>
+          <div
+            ref={cameraFrame}
+            className={`camera-frame ${guideTest ? "camera-select" : ""}`}
+            style={{ aspectRatio: aspect }}
+            onPointerDown={(e) => {
+              if (!guideTest || !camera) return;
+              selection.current = point(e);
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              if (guideTest) selectRegion(e);
+            }}
+            onPointerUp={(e) => {
+              if (!guideTest) return;
+              selectRegion(e);
+              selection.current = null;
+            }}
+            onPointerCancel={() => {
+              selection.current = null;
+            }}
+          >
             <video
               ref={video}
               muted
@@ -316,9 +500,90 @@ export function CalibratorPhone() {
               autoPlay
               aria-label="Podgląd kamery"
             />
-            <div className="camera-crop" aria-hidden="true" />
+            <div
+              className="camera-crop"
+              style={
+                guideTest
+                  ? {
+                      left: `${region.x * 100}%`,
+                      top: `${region.y * 100}%`,
+                      width: `${region.width * 100}%`,
+                      height: `${region.height * 100}%`,
+                      pointerEvents: "none",
+                    }
+                  : undefined
+              }
+              aria-hidden="true"
+            />
             {!camera && <span>Podgląd po włączeniu kamery</span>}
           </div>
+          {guideTest && (
+            <details>
+              <summary>Dopasuj obszar bez przeciągania</summary>
+              {(
+                [
+                  ["x", "Lewy brzeg"],
+                  ["y", "Górny brzeg"],
+                  ["width", "Szerokość"],
+                  ["height", "Wysokość"],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key}>
+                  <label htmlFor={`region-${key}`}>
+                    {label}: {Math.round(region[key] * 100)}%
+                  </label>
+                  <input
+                    id={`region-${key}`}
+                    type="range"
+                    step="0.01"
+                    min={key === "x" || key === "y" ? 0 : 0.1}
+                    max={
+                      key === "x"
+                        ? 1 - region.width
+                        : key === "y"
+                          ? 1 - region.height
+                          : key === "width"
+                            ? 1 - region.x
+                            : 1 - region.y
+                    }
+                    value={region[key]}
+                    onChange={(e) =>
+                      setRegion({ ...region, [key]: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              ))}
+            </details>
+          )}
+          {guideTest && (
+            <button
+              className="text-button"
+              onClick={() => setRegion(defaultRegion)}
+            >
+              Przywróć domyślny obszar
+            </button>
+          )}
+          {guideTest && camera && (
+            <CameraGrid reading={liveReading} readingAt={liveAt} />
+          )}
+          {guideTest && guide && (
+            <GuideNote
+              key={guideTest.id}
+              guide={guide}
+              send={sendGuide}
+              busy={guideBusy}
+            />
+          )}
+          {liveError && guideTest && (
+            <p className="notice error" role="status">
+              {liveError}
+            </p>
+          )}
+          {guideError && (
+            <p className="notice error" role="status">
+              {guideError}
+            </p>
+          )}
           {run?.status === "measuring" && (
             <button
               className="button measure-button"
