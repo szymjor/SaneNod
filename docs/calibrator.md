@@ -66,4 +66,6 @@ Uwierzytelniony HTTP polling 1,5 s przenosi małe, dyskretne pomiary. Nie utrzym
 
 Strony DisplayCAL/niektóre strony EIZO/Dell były niedostępne (403/503/404). Nie przypisujemy im potwierdzenia. Nie zweryfikowano menu wszystkich monitorów ani fizycznej dokładności pomiarów na prawdziwym telefonie. Wskazówki nazw są wariantami do odszukania i wymagają instrukcji konkretnego modelu.
 
+Testy kamery używają pełnego Chromium (nowy tryb headless), ponieważ Chrome Headless Shell 153 odrzuca getUserMedia jako NotSupportedError. Obsługa błędu kamery jest testowana osobno, w tym utrzymanie komunikatu podczas poprawnych odpytań połączenia. Symulowane urządzenia E2E mają odrębne adresy testowe; produkcyjne limity logowania pozostają włączone.
+
 Pliki ICC otwarto niezależnie przez **LittleCMS 2**: transformacje RGB→XYZ, biel D50, czerń, szarość 50% i barwy podstawowe dla wszystkich sześciu referencji. Testy projektu sprawdzają integralność, granice tagów, monotoniczność TRC, parametry przestrzeni, obliczenia, walidację CSV, własność danych, nonce, równoczesny replay i cofnięcie połączenia. E2E używa rzeczywistego API kamery z symulowanym źródłem Chromium — to dowód działania przepływu, nie fizycznej kalibracji sprzętu. Instalatory nadal są testowe, niepodpisane.

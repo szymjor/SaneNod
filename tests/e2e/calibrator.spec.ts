@@ -1,6 +1,7 @@
 import { test, expect, devices } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
+import { isolateDeviceIP } from "./network";
 import { patches } from "../../apps/portal/lib/calibrator/measurement";
 // @ts-expect-error Plain Node fixture sits outside application sources.
 import { testUser } from "../../packages/auth/scripts/test-user.mjs";
@@ -9,6 +10,7 @@ async function login(
   email: string,
   password: string,
 ) {
+  await isolateDeviceIP(page);
   await page.goto("/auth");
   await page.getByLabel("Adres e-mail").fill(email);
   await page.getByLabel("Hasło", { exact: true }).fill(password);
@@ -137,6 +139,32 @@ test("paired phone captures real video frames, computer advances and camera resu
       a.getByText("Telefon połączony. Możesz uruchomić serię."),
     ).toBeVisible();
     expect(await b.evaluate(() => location.hash)).toBe("");
+    // A camera failure must stay visible while successful connection polls continue.
+    await b.evaluate(() => {
+      const media = navigator.mediaDevices;
+      const original = media.getUserMedia.bind(media);
+      let first = true;
+      media.getUserMedia = (constraints) => {
+        if (first) {
+          first = false;
+          return Promise.reject(
+            new DOMException("Camera unavailable", "NotSupportedError"),
+          );
+        }
+        return original(constraints);
+      };
+    });
+    await b.getByRole("button", { name: "Włącz kamerę" }).click();
+    await expect(
+      b.getByText(/Przeglądarka nie obsługuje tej kamery/),
+    ).toBeVisible();
+    // Observe an actual completed poll rather than adding an arbitrary delay.
+    await b.waitForResponse(
+      (r) => r.url().includes("/api/calibrator?pairId=") && r.status() === 200,
+    );
+    await expect(
+      b.getByText(/Przeglądarka nie obsługuje tej kamery/),
+    ).toBeVisible();
     await b.getByRole("button", { name: "Włącz kamerę" }).click();
     await expect(
       b.getByRole("button", { name: "Zablokuj dostępne automatyki" }),

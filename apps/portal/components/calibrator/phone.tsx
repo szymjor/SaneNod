@@ -26,6 +26,8 @@ export function CalibratorPhone() {
     [cameraNote, setCameraNote] = useState("");
   const [locked, setLocked] = useState(false),
     [lockBusy, setLockBusy] = useState(false);
+  const [connectionNotice, setConnectionNotice] = useState("");
+  const [aspect, setAspect] = useState("16 / 9");
   const video = useRef<HTMLVideoElement>(null),
     stream = useRef<MediaStream | null>(null),
     wake = useRef<WakeLockSentinel | null>(null);
@@ -53,10 +55,10 @@ export function CalibratorPhone() {
         const data = await api(`/api/calibrator?pairId=${pairId}`);
         if (!stopped) {
           setRun(data.run);
-          setNotice("");
+          setConnectionNotice("");
         }
       } catch (e) {
-        if (!stopped) setNotice(message(e));
+        if (!stopped) setConnectionNotice(message(e));
       }
       if (!stopped) timer = setTimeout(poll, 1500);
     }
@@ -95,6 +97,10 @@ export function CalibratorPhone() {
       if (video.current) {
         video.current.srcObject = stream.current;
         await video.current.play();
+        if (video.current.videoWidth && video.current.videoHeight)
+          setAspect(
+            `${video.current.videoWidth} / ${video.current.videoHeight}`,
+          );
       }
       setCamera(true);
       setLocked(false);
@@ -115,7 +121,9 @@ export function CalibratorPhone() {
       setNotice(
         e instanceof DOMException && e.name === "NotAllowedError"
           ? "Zezwól na kamerę w ustawieniach przeglądarki. Pomiar wymaga HTTPS i Twojej zgody."
-          : message(e),
+          : e instanceof DOMException && e.name === "NotSupportedError"
+            ? "Przeglądarka nie obsługuje tej kamery. Spróbuj aktualnej pełnej przeglądarki Chrome lub Safari."
+            : message(e),
       );
     } finally {
       setBusy(false);
@@ -269,7 +277,7 @@ export function CalibratorPhone() {
   return (
     <section className="cal-panel phone-panel">
       <span className="eyebrow">Telefon · Czujnik orientacyjny</span>
-      <h1>Skieruj kamerę na ekran.</h1>
+      <h1>Zmierz ekran.</h1>
       {!pairId ? (
         <>
           <p>
@@ -297,11 +305,10 @@ export function CalibratorPhone() {
                   : `Wzorzec ${run.current_index + 1}/${patches.length}: ${patch?.name}.`}
           </p>
           <p>
-            Wypełnij środkowy kwadrat jednolitym wzorcem z monitora. Trzymaj
-            telefon nieruchomo, bez odblasków. Zdjęcia nie są wysyłane — tylko
-            liczby RGB i informacje o ustawieniach kamery.
+            Wypełnij zaznaczony kwadrat wzorcem z monitora. Trzymaj telefon
+            nieruchomo, bez odblasków.
           </p>
-          <div className="camera-frame">
+          <div className="camera-frame" style={{ aspectRatio: aspect }}>
             <video
               ref={video}
               muted
@@ -312,6 +319,19 @@ export function CalibratorPhone() {
             <div className="camera-crop" aria-hidden="true" />
             {!camera && <span>Podgląd po włączeniu kamery</span>}
           </div>
+          {run?.status === "measuring" && (
+            <button
+              className="button measure-button"
+              onClick={capture}
+              disabled={!camera || busy || sampled}
+            >
+              {busy
+                ? "Stabilizacja i pomiar…"
+                : sampled
+                  ? "Próbka odebrana — czekaj na komputer"
+                  : `Zmierz: ${patch?.name}`}
+            </button>
+          )}
           <div className="actions">
             <button
               className="button secondary"
@@ -331,27 +351,20 @@ export function CalibratorPhone() {
             )}
           </div>
           {cameraNote && <p className="muted">{cameraNote}</p>}
-          {run?.status === "measuring" && (
-            <button
-              className="button measure-button"
-              onClick={capture}
-              disabled={!camera || busy || sampled}
-            >
-              {busy
-                ? "Stabilizacja i pomiar…"
-                : sampled
-                  ? "Próbka odebrana — czekaj na komputer"
-                  : `Zmierz: ${patch?.name}`}
-            </button>
-          )}
           <p className="muted">
             Kamera nie mierzy cd/m² ani punktu bieli. Automatyka i
-            charakterystyka sensora mogą zmieniać wynik.
+            charakterystyka sensora mogą zmieniać wynik. Zdjęcia nie są wysyłane
+            — tylko liczby RGB i ustawienia kamery.
           </p>
           <button className="text-button" onClick={disconnect} disabled={busy}>
             Zakończ połączenie
           </button>
         </>
+      )}
+      {connectionNotice && (
+        <p className="notice error" role="status">
+          {connectionNotice}
+        </p>
       )}
       {notice && (
         <p className="notice" role="status">

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { isolateDeviceIP } from "./network";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 // @ts-expect-error Plain Node fixture deliberately sits outside application sources.
@@ -60,6 +61,7 @@ test("two browser devices share account, pair once, exchange ping, and revoke", 
   const db = new Pool({ connectionString: process.env.DATABASE_URL });
   try {
     for (const page of [a, b]) {
+      await isolateDeviceIP(page);
       await page.goto("/auth");
       await page.getByLabel("Adres e-mail").fill(email);
       await page.getByLabel("Hasło", { exact: true }).fill(password);
