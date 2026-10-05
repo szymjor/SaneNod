@@ -6,6 +6,7 @@ export async function GET() {
   try {
     await pool().query('select 1 from "user" limit 1');
     await pool().query("select 1 from pairing_sessions limit 1");
+    await pool().query("select 1 from calibrations limit 1");
     return Response.json({ status: "ok" });
   } catch {
     return Response.json({ status: "database_unavailable" }, { status: 503 });

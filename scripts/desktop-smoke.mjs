@@ -59,6 +59,14 @@ try {
     await page.evaluate(() => [typeof window.require, typeof window.process]),
     ["undefined", "undefined"],
   );
+  assert.deepEqual(
+    await page.evaluate(() => Object.keys(window.sanenodDesktop).sort()),
+    ["openColorSettings", "platform"],
+  );
+  assert.equal(
+    await page.evaluate(() => typeof window.sanenodDesktop.openColorSettings),
+    "function",
+  );
   assert.equal(
     await page.evaluate(async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
