@@ -20,7 +20,7 @@ Manifest i service worker umożliwiają instalację portalu oraz ekran offline. 
 
 Electron wybrano dla jednolitego Chromium i przyszłej integracji z systemowymi API koloru. Tauri ma mniejszy rozmiar, ale korzysta z różnych systemowych WebView, co komplikuje powtarzalność obsługi kamery. Dostęp do zewnętrznych czujników wymaga osobnych sterowników/integracji niezależnie od tej decyzji.
 
-Okno Electron ma sandbox, contextIsolation, brak Node w rendererze i nie udostępnia zdalnej stronie native bridge. Nawigacja jest ograniczona do portalu, nowe okna zablokowane. Kamera jest dopuszczona tylko dla tego origin; mikrofon nie jest dopuszczony. Pakowanie, podpisywanie i test fizycznej kamery na Windows/macOS wymagają tych platform. Systemowy moduł ustawień koloru zostanie zaprojektowany w Etapie 2 z wąskim, walidowanym IPC.
+Okno Electron ma sandbox, contextIsolation, brak Node w rendererze i udostępnia tylko wąski native bridge otwierający systemowy panel koloru. Nawigacja jest ograniczona do portalu, nowe okna zablokowane. Kamera jest dopuszczona tylko dla tego origin; mikrofon nie jest dopuszczony. Pakowanie, podpisywanie i test fizycznej kamery na Windows/macOS wymagają tych platform. Kalibrator dodał walidowane IPC: tylko główna ramka zaufanego origin, stałe polecenie Windows Color Management / macOS ColorSync Utility. Renderer nie przekazuje ścieżek ani poleceń i nie ma dostępu do plików.
 
 ## Warunek wejścia do Etapu 2
 
@@ -33,4 +33,4 @@ Okno Electron ma sandbox, contextIsolation, brak Node w rendererze i nie udostę
 
 ## Granice przyszłego Kalibratora
 
-Zwykła kamera telefonu nie jest wzorcowanym kolorymetrem. Automatyczna ekspozycja, balans bieli, charakterystyka sensora i widmo wyświetlacza uniemożliwiają obietnicę wiernych pomiarów bez charakteryzacji sprzętu. Nie przedstawimy porównań obrazowych jako pomiaru ΔE. Profil ICC opisujący urządzenie wymaga rzetelnych danych; wybór sRGB/Adobe RGB/P3 nie poszerza fizycznego gamutu monitora. Etap 2 rozdzieli tryb orientacyjny kamery i pomiary wzorcowanym czujnikiem oraz uwzględni te granice w UX.
+Zwykła kamera telefonu nie jest wzorcowanym kolorymetrem. Automatyczna ekspozycja, balans bieli, charakterystyka sensora i widmo wyświetlacza uniemożliwiają obietnicę wiernych pomiarów bez charakteryzacji sprzętu. Nie przedstawimy porównań obrazowych jako pomiaru ΔE. Profil ICC opisujący urządzenie wymaga rzetelnych danych; wybór sRGB/Adobe RGB/P3 nie poszerza fizycznego gamutu monitora. Kalibrator rozdziela próbki orientacyjne kamery i import pomiarów XYZ z czujnika, a ICC jest wybierany ze stałych standardów zgodnie z doprecyzowaniem właściciela. Patrz [model pomiarów i źródła](calibrator.md).

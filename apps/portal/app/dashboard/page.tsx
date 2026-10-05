@@ -46,10 +46,12 @@ export default async function Dashboard() {
           <span className="large-icon">▣</span>
           <h2>Kalibrator Monitora</h2>
           <p>
-            Planowana pierwsza aplikacja. Będzie dostępna po weryfikacji
-            infrastruktury.
+            Ustaw monitor krok po kroku. Porównaj serie pomiarów i wybierz
+            standardowy profil kolorystyczny.
           </p>
-          <span className="badge">W przygotowaniu</span>
+          <Link className="button secondary" href="/apps/calibrator">
+            Otwórz Kalibrator →
+          </Link>
         </Panel>
         <Panel>
           <h2>Kolejne narzędzia</h2>

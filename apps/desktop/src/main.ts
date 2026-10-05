@@ -1,4 +1,7 @@
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, session, ipcMain } from "electron";
+import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 const raw = process.env.SANENOD_PORTAL_URL ?? "https://sanenod.vercel.app";
 const portal = new URL(raw);
 const local =
@@ -39,6 +42,27 @@ app.whenReady().then(() => {
           details.mediaTypes.every((type) => type === "video"),
       ),
   );
+  ipcMain.handle(
+    "sanenod:color-settings",
+    async (event, ...args: unknown[]) => {
+      if (
+        args.length ||
+        event.senderFrame !== event.sender.mainFrame ||
+        !event.senderFrame ||
+        !trusted(event.senderFrame.url) ||
+        !BrowserWindow.fromWebContents(event.sender)
+      )
+        throw new Error("Only the trusted main frame can open color settings.");
+      if (process.platform === "win32")
+        await promisify(execFile)("colorcpl.exe", []);
+      else if (process.platform === "darwin")
+        await promisify(execFile)("/usr/bin/open", ["-a", "ColorSync Utility"]);
+      else
+        throw new Error(
+          "Open your system color settings manually. Supported desktop platforms: Windows and macOS.",
+        );
+    },
+  );
   function createWindow() {
     const win = new BrowserWindow({
       width: 1200,
@@ -47,6 +71,7 @@ app.whenReady().then(() => {
       minHeight: 550,
       backgroundColor: "#f5f4ef",
       webPreferences: {
+        preload: join(__dirname, "preload.js"),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,
@@ -71,4 +96,4 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
-// No Node bridge is exposed to remote web content. Native color management belongs to Stage 2.
+// The bridge only opens a fixed OS color panel. It cannot write profiles, files, or monitor settings.

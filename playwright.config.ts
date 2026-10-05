@@ -5,7 +5,7 @@ if (existsSync("apps/portal/.env.local"))
 export default defineConfig({
   reporter: process.env.CI ? [["list"], ["github"]] : "list",
   testDir: "./tests/e2e",
-  testMatch: "**/portal.spec.ts",
+  testMatch: ["**/portal.spec.ts", "**/calibrator.spec.ts"],
   workers: 1,
   timeout: 60000,
   use: { baseURL: "http://localhost:3000", trace: "retain-on-failure" },
@@ -15,8 +15,14 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-          ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-          : {},
+          ? {
+              executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+              args: ["--use-fake-device-for-media-stream"],
+            }
+          : {
+              channel: "chromium",
+              args: ["--use-fake-device-for-media-stream"],
+            },
       },
     },
   ],
